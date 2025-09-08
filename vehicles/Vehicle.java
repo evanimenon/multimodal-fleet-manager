@@ -36,11 +36,14 @@ public abstract class Vehicle{
         return currentMileage;
     }
 
+    public double getMaxSpeed() {
+        return maxSpeed;
+    }
+
     public String getId() { 
         return id;
     }
 
-    // Protected method for subclasses to update mileage
     protected void updateMileage(double distance) {
         this.currentMileage += distance;
     }
