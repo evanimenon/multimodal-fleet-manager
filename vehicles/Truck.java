@@ -11,7 +11,7 @@ public class Truck extends LandVehicle
         implements FuelConsumable, CargoCarrier, Maintainable {
 
     private double fuelLevel = 0.0;
-    private final double cargoCapacity = 5000.0; // kg
+    private final double cargoCapacity = 5000.0; 
     private double currentCargo = 0.0;
     private boolean maintenanceNeeded = false;
 
@@ -37,7 +37,7 @@ public class Truck extends LandVehicle
 
     @Override
     public double calculateFuelEfficiency() {
-        return 8.0; // base km/l
+        return 8.0; 
     }
 
     // FuelConsumable

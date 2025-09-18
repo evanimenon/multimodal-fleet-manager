@@ -14,7 +14,7 @@ import java.util.List;
 public class FleetManager {
 
     private final List<Vehicle> fleet = new ArrayList<>();
-
+//add vehicle
     public void addVehicle(Vehicle v) throws InvalidOperationException {
         for (Vehicle existing : fleet) {
             if (existing.getId().equals(v.getId())) {
@@ -23,14 +23,14 @@ public class FleetManager {
         }
         fleet.add(v);
     }
-
+//remove vehicle
     public void removeVehicle(String id) throws InvalidOperationException {
         boolean removed = fleet.removeIf(v -> v.getId().equals(id));
         if (!removed) {
             throw new InvalidOperationException("Vehicle with ID " + id + " not found");
         }
     }
-
+//start all journey
     public void startAllJourneys(double distance) {
         for (Vehicle v : fleet) {
             try {
@@ -67,6 +67,7 @@ public class FleetManager {
         }
     }
 
+    //search by type
     public List<Vehicle> searchByType(Class<?> type) {
         List<Vehicle> result = new ArrayList<>();
         for (Vehicle v : fleet) {
@@ -81,6 +82,7 @@ public class FleetManager {
         Collections.sort(fleet, Comparator.comparingDouble(Vehicle::calculateFuelEfficiency));
     }
 
+    //generate report that includes total mileage and efficiency of each vehicle
     public String generateReport() {
         StringBuilder sb = new StringBuilder();
         sb.append("Fleet Report\n");
@@ -89,15 +91,16 @@ public class FleetManager {
         for (Vehicle v : fleet) {
             totalMileage += v.getCurrentMileage();
             sb.append(v.getClass().getSimpleName())
-              .append(" ID: ").append(v.getId())
-              .append(", Mileage: ").append(v.getCurrentMileage())
-              .append(", Efficiency: ").append(v.calculateFuelEfficiency())
-              .append("\n");
+                    .append(" ID: ").append(v.getId())
+                    .append(", Mileage: ").append(v.getCurrentMileage())
+                    .append(", Efficiency: ").append(v.calculateFuelEfficiency())
+                    .append("\n");
         }
         sb.append("Total mileage: ").append(totalMileage).append("\n");
         return sb.toString();
     }
 
+    //list of vehicles needing maintenance
     public List<Vehicle> getVehiclesNeedingMaintenance() {
         List<Vehicle> needing = new ArrayList<>();
         for (Vehicle v : fleet) {
@@ -111,7 +114,7 @@ public class FleetManager {
         return needing;
     }
 
-    /** ---------------- Persistence ---------------- **/
+    /////// Persistence //////
 
     public void saveToFile(String filename) {
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(filename))) {
@@ -135,20 +138,23 @@ public class FleetManager {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] parts = line.split(",");
-                if (parts.length < 5) continue;
+                if (parts.length < 5)
+                    continue;
 
+                // Parse fields
                 String type = parts[0];
                 String id = parts[1];
                 String model = parts[2];
                 double maxSpeed = Double.parseDouble(parts[3]);
                 double mileage = Double.parseDouble(parts[4]);
 
-                // Use a VehicleFactory to create proper subclass from type
+                // Create vehicle via factory
                 Vehicle v = VehicleFactory.create(type, id, model, maxSpeed);
                 if (v != null) {
-                    // Optionally set mileage if you add a setter in Vehicle
+                    v.setCurrentMileage(mileage); // - applies the value read from CSV
                     fleet.add(v);
                 }
+
             }
             System.out.println("Fleet loaded from " + filename);
         } catch (IOException e) {

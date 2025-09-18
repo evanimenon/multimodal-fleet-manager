@@ -14,7 +14,7 @@ public class Airplane extends AirVehicle
     private double fuelLevel = 0.0;
     private final int passengerCapacity = 200;
     private int currentPassengers = 0;
-    private final double cargoCapacity = 10000.0; // kg
+    private final double cargoCapacity = 10000.0; 
     private double currentCargo = 0.0;
     private boolean maintenanceNeeded = false;
 

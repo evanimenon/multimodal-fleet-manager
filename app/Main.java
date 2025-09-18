@@ -2,14 +2,61 @@ package app;
 
 import logistics.*;
 import vehicles.*;
-import java.util.*;
 import vehicles.interfaces.FuelConsumable;
 
+import java.util.List;
+import java.util.Scanner;
+
 public class Main {
+
     private static final FleetManager manager = new FleetManager();
     private static final Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
+        runDemo(); 
+        runCLI();  //to launch CLI
+    }
+
+    ///////DEMO??????//////
+    private static void runDemo() {
+        System.out.println("=== Demo: Creating Sample Fleet ===");
+        try {
+            Vehicle car      = new Car("C1", "Sedan", 120, 4);
+            Vehicle truck    = new Truck("T1", "Hauler", 90, 6);
+            Vehicle bus      = new Bus("B1", "CityBus", 80, 6);
+            Vehicle airplane = new Airplane("A1", "Boeing", 850, 10000);
+            Vehicle ship     = new CargoShip("S1", "Freighter", 40, false);
+
+            manager.addVehicle(car);
+            manager.addVehicle(truck);
+            manager.addVehicle(bus);
+            manager.addVehicle(airplane);
+            manager.addVehicle(ship);
+
+            // refuel all fuel-using vehicles
+            for (Vehicle v : manager.searchByType(Vehicle.class)) {
+                if (v instanceof FuelConsumable) {
+                    ((FuelConsumable) v).refuel(200);
+                }
+            }
+
+            // simulate a 100 km journey
+            manager.startAllJourneys(100);
+
+            // generate and print report
+            String report = manager.generateReport();
+            System.out.println(report);
+
+            // save to CSV for testing load/save
+            manager.saveToFile("sample_fleet.csv");
+            System.out.println("Demo fleet saved to sample_fleet.csv\n");
+        } catch (Exception e) {
+            System.err.println("Demo setup failed: " + e.getMessage());
+        }
+    }
+
+    ////// CLI -///////
+    private static void runCLI() {
         while (true) {
             printMenu();
             String choice = sc.nextLine().trim();
@@ -48,13 +95,13 @@ public class Main {
 
     private static void addVehicle() {
         try {
-            System.out.print("Enter vehicle type (Car/Truck/Bus/Airplane/CargoShip): ");
+            System.out.print("Type (Car/Truck/Bus/Airplane/CargoShip): ");
             String type = sc.nextLine().trim();
-            System.out.print("Enter ID: ");
+            System.out.print("ID: ");
             String id = sc.nextLine().trim();
-            System.out.print("Enter model: ");
+            System.out.print("Model: ");
             String model = sc.nextLine().trim();
-            System.out.print("Enter max speed: ");
+            System.out.print("Max speed: ");
             double speed = Double.parseDouble(sc.nextLine().trim());
 
             Vehicle v = VehicleFactory.create(type, id, model, speed);
@@ -71,7 +118,7 @@ public class Main {
 
     private static void removeVehicle() {
         try {
-            System.out.print("Enter vehicle ID to remove: ");
+            System.out.print("Vehicle ID to remove: ");
             manager.removeVehicle(sc.nextLine().trim());
             System.out.println("Removed.");
         } catch (Exception e) {
@@ -81,7 +128,7 @@ public class Main {
 
     private static void startJourney() {
         try {
-            System.out.print("Enter distance (km): ");
+            System.out.print("Distance (km): ");
             double dist = Double.parseDouble(sc.nextLine().trim());
             manager.startAllJourneys(dist);
         } catch (NumberFormatException e) {
@@ -91,7 +138,7 @@ public class Main {
 
     private static void refuelAll() {
         try {
-            System.out.print("Enter refuel amount (litres) for all fuel-using vehicles: ");
+            System.out.print("Refuel amount (litres): ");
             double amt = Double.parseDouble(sc.nextLine().trim());
             for (Vehicle v : manager.searchByType(Vehicle.class)) {
                 if (v instanceof FuelConsumable) {
@@ -105,20 +152,19 @@ public class Main {
     }
 
     private static void saveFleet() {
-        System.out.print("Enter filename to save (e.g., fleet.csv): ");
+        System.out.print("Filename to save (e.g., fleet.csv): ");
         manager.saveToFile(sc.nextLine().trim());
     }
 
     private static void loadFleet() {
-        System.out.print("Enter filename to load: ");
+        System.out.print("Filename to load: ");
         manager.loadFromFile(sc.nextLine().trim());
     }
 
     private static void searchByType() {
-        System.out.print("Enter class name to search (e.g., Car): ");
+        System.out.print("Class name to search (e.g., Car): ");
         String type = sc.nextLine().trim();
         try {
-            // dynamic class lookup from vehicles package
             Class<?> clazz = Class.forName("vehicles." + type);
             List<Vehicle> results = manager.searchByType(clazz);
             results.forEach(v -> System.out.println(v.getClass().getSimpleName() + " " + v.getId()));

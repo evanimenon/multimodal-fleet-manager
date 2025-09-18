@@ -1,8 +1,8 @@
 package vehicles;
+
 import logistics.InvalidOperationException;
 
-
-public abstract class Vehicle{
+public abstract class Vehicle implements Comparable<Vehicle> {
     private String id;
     private String model;
     private double maxSpeed;
@@ -10,7 +10,7 @@ public abstract class Vehicle{
 
     // Constructor
     public Vehicle(String id, String model, double maxSpeed) {
-        if (id == null || id.trim().isEmpty()){
+        if (id == null || id.trim().isEmpty()) {
             throw new IllegalArgumentException("ID cannot be empty");
         }
         this.id = id;
@@ -40,15 +40,29 @@ public abstract class Vehicle{
         return maxSpeed;
     }
 
-    public String getId() { 
+    public String getId() {
         return id;
     }
 
     public String getModel() {
-    return model;
+        return model;
+    }
+
+    public void setCurrentMileage(double mileage) {
+        if (mileage < 0) {
+            throw new IllegalArgumentException("Mileage cannot be negative");
+        }
+        this.currentMileage = mileage;
     }
 
     protected void updateMileage(double distance) {
         this.currentMileage += distance;
+    }
+
+    // Comparable implementation for sorting by fuel efficiency
+    @Override
+    public int compareTo(Vehicle other) {
+        return Double.compare(this.calculateFuelEfficiency(),
+                              other.calculateFuelEfficiency());
     }
 }
