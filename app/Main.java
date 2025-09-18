@@ -1,3 +1,4 @@
+package app;
 import vehicles.*;
 import logistics.*;
 
