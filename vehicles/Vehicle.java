@@ -44,6 +44,10 @@ public abstract class Vehicle{
         return id;
     }
 
+    public String getModel() {
+    return model;
+    }
+
     protected void updateMileage(double distance) {
         this.currentMileage += distance;
     }
