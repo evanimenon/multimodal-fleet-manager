@@ -7,8 +7,7 @@ import vehicles.interfaces.FuelConsumable;
 import vehicles.interfaces.PassengerCarrier;
 import vehicles.interfaces.Maintainable;
 
-public class Car extends LandVehicle
-        implements FuelConsumable, PassengerCarrier, Maintainable {
+public class Car extends LandVehicle implements FuelConsumable, PassengerCarrier, Maintainable {
 
     private double fuelLevel = 0.0;
     private final int passengerCapacity = 5;
@@ -28,12 +27,16 @@ public class Car extends LandVehicle
         fuelLevel -= requiredFuel;
         updateMileage(distance);
         System.out.println("Driving on road for " + distance + " km...");
-        if (getCurrentMileage() > 10000) maintenanceNeeded = true;
+
+        // Trigger maintenance after long usage
+        if (getCurrentMileage() > 10000) {
+            maintenanceNeeded = true;
+        }
     }
 
     @Override
     public double calculateFuelEfficiency() {
-        return 15.0; // km per litre
+        return 15.0;
     }
 
     // FuelConsumable
@@ -60,14 +63,14 @@ public class Car extends LandVehicle
     @Override
     public void boardPassengers(int count) throws OverloadException {
         if (currentPassengers + count > passengerCapacity)
-            throw new OverloadException("Exceeds passenger capacity");
+            throw new OverloadException("Passenger limit exceeded");
         currentPassengers += count;
     }
 
     @Override
     public void disembarkPassengers(int count) throws InvalidOperationException {
         if (count > currentPassengers)
-            throw new InvalidOperationException("Not enough passengers to disembark");
+            throw new InvalidOperationException("Cannot remove more passengers than present");
         currentPassengers -= count;
     }
 

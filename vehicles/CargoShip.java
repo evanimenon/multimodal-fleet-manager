@@ -10,11 +10,11 @@ import vehicles.interfaces.FuelConsumable;
 public class CargoShip extends WaterVehicle
         implements CargoCarrier, Maintainable, FuelConsumable {
 
-    private final double cargoCapacity = 50000.0; // kg
+    private final double cargoCapacity = 200000.0; 
     private double currentCargo = 0.0;
     private boolean maintenanceNeeded = false;
 
-    // fuel-related only if hasSail == false
+    // Fuel tracking (used only if not sailing)
     private double fuelLevel = 0.0;
 
     public CargoShip(String id, String model, double maxSpeed, boolean hasSail) {
@@ -23,29 +23,36 @@ public class CargoShip extends WaterVehicle
 
     @Override
     public void move(double distance) throws InvalidOperationException {
+        double efficiency = calculateFuelEfficiency();
+
+        if (currentCargo > cargoCapacity / 2 && !gethasSail()) {
+            efficiency *= 0.9;
+        }
+
         if (!gethasSail()) {
-            double requiredFuel = distance / calculateFuelEfficiency();
+            double requiredFuel = distance / efficiency;
             if (fuelLevel < requiredFuel) {
                 throw new InvalidOperationException("Not enough fuel to sail " + distance + " km");
             }
             fuelLevel -= requiredFuel;
         }
+
         updateMileage(distance);
         System.out.println("Sailing with cargo for " + distance + " km...");
+
         if (getCurrentMileage() > 10000) maintenanceNeeded = true;
     }
 
     @Override
     public double calculateFuelEfficiency() {
-        // 4 km/l if engine powered, else 0 (sail only)
-        return gethasSail() ? 0.0 : 4.0;
+        return gethasSail() ? 0.0 : 0.5;
     }
 
     // CargoCarrier
     @Override
     public void loadCargo(double weight) throws OverloadException {
         if (currentCargo + weight > cargoCapacity)
-            throw new OverloadException("Exceeds cargo capacity");
+            throw new OverloadException("Exceeds cargo capacity of " + cargoCapacity + " kg");
         currentCargo += weight;
     }
 
@@ -83,11 +90,11 @@ public class CargoShip extends WaterVehicle
         System.out.println("Maintenance completed for CargoShip " + getId());
     }
 
-    // FuelConsumable (only meaningful if hasSail == false)
+    // FuelConsumable (only if engine-powered)
     @Override
     public void refuel(double amount) throws InvalidOperationException {
         if (gethasSail())
-            throw new InvalidOperationException("This ship uses sails and cannot be refueled");
+            throw new InvalidOperationException("This ship uses sails and cannot be refueled.");
         if (amount <= 0) throw new InvalidOperationException("Refuel amount must be positive");
         fuelLevel += amount;
     }
@@ -100,7 +107,7 @@ public class CargoShip extends WaterVehicle
     @Override
     public double consumeFuel(double distance) throws InsufficientFuelException {
         if (gethasSail())
-            throw new InsufficientFuelException("Sailing ship does not use fuel");
+            throw new InsufficientFuelException("This ship does not consume fuel while sailing.");
         double needed = distance / calculateFuelEfficiency();
         if (fuelLevel < needed)
             throw new InsufficientFuelException("Insufficient fuel for voyage");

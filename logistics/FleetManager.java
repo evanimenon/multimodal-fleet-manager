@@ -4,17 +4,29 @@ import vehicles.Vehicle;
 import vehicles.interfaces.FuelConsumable;
 import vehicles.interfaces.Maintainable;
 
-import java.io.*;
-import java.nio.file.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 
+
+/**
+ * Collection-based Fleet Manager:
+ * - Dynamic storage: ArrayList<Vehicle>
+ * - Uniqueness set: HashSet<String> of model names
+ * - Ordering/view: TreeSet via getDistinctModelsAlphabetical()
+ * - Sorting: comparators for speed/model/efficiency
+ * - Persistence: CSV save/load (for A2)
+ */
 public class FleetManager {
 
     private final List<Vehicle> fleet = new ArrayList<>();
-//add vehicle
+    private final Set<String> modelNames = new HashSet<>();
+
+    // ---------- CRUD / Lookup ----------
+
     public void addVehicle(Vehicle v) throws InvalidOperationException {
         for (Vehicle existing : fleet) {
             if (existing.getId().equals(v.getId())) {
@@ -22,15 +34,27 @@ public class FleetManager {
             }
         }
         fleet.add(v);
+        modelNames.add(v.getModel());
     }
-//remove vehicle
+
     public void removeVehicle(String id) throws InvalidOperationException {
         boolean removed = fleet.removeIf(v -> v.getId().equals(id));
-        if (!removed) {
-            throw new InvalidOperationException("Vehicle with ID " + id + " not found");
-        }
+        if (!removed) throw new InvalidOperationException("Vehicle with ID " + id + " not found");
     }
-//start all journey
+
+    public Vehicle searchById(String id) {
+        for (Vehicle v : fleet) if (v.getId().equals(id)) return v;
+        return null;
+    }
+
+    public List<Vehicle> searchByType(Class<?> type) {
+        List<Vehicle> result = new ArrayList<>();
+        for (Vehicle v : fleet) if (type.isInstance(v)) result.add(v);
+        return result;
+    }
+
+    // ---------- Simulation / Maintenance ----------
+
     public void startAllJourneys(double distance) {
         for (Vehicle v : fleet) {
             try {
@@ -44,8 +68,7 @@ public class FleetManager {
     public double getTotalFuelConsumption(double distance) {
         double total = 0.0;
         for (Vehicle v : fleet) {
-            if (v instanceof FuelConsumable) {
-                FuelConsumable fc = (FuelConsumable) v;
+            if (v instanceof FuelConsumable fc) {
                 try {
                     total += fc.consumeFuel(distance);
                 } catch (Exception e) {
@@ -58,31 +81,51 @@ public class FleetManager {
 
     public void maintainAll() {
         for (Vehicle v : fleet) {
-            if (v instanceof Maintainable) {
-                Maintainable m = (Maintainable) v;
-                if (m.needsMaintenance()) {
-                    m.performMaintenance();
-                }
+            if (v instanceof Maintainable m && m.needsMaintenance()) {
+                m.performMaintenance();
             }
         }
     }
 
-    //search by type
-    public List<Vehicle> searchByType(Class<?> type) {
-        List<Vehicle> result = new ArrayList<>();
-        for (Vehicle v : fleet) {
-            if (type.isInstance(v)) {
-                result.add(v);
-            }
-        }
-        return result;
-    }
+    // ---------- Sorting / Analysis ----------
 
     public void sortFleetByEfficiency() {
-        Collections.sort(fleet, Comparator.comparingDouble(Vehicle::calculateFuelEfficiency));
+        fleet.sort(Comparator.comparingDouble(Vehicle::calculateFuelEfficiency));
     }
 
-    //generate report that includes total mileage and efficiency of each vehicle
+    public List<Vehicle> sortBySpeed() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparingDouble(Vehicle::getMaxSpeed).reversed());
+        return sorted;
+    }
+
+    public List<Vehicle> sortByModel() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparing(Vehicle::getModel));
+        return sorted;
+    }
+
+    public List<Vehicle> sortByEfficiency() {
+        List<Vehicle> sorted = new ArrayList<>(fleet);
+        sorted.sort(Comparator.comparingDouble(Vehicle::calculateFuelEfficiency).reversed());
+        return sorted;
+    }
+
+    public Vehicle getFastestVehicle() {
+        return Collections.max(fleet, Comparator.comparingDouble(Vehicle::getMaxSpeed));
+    }
+
+    public Vehicle getSlowestVehicle() {
+        return Collections.min(fleet, Comparator.comparingDouble(Vehicle::getMaxSpeed));
+    }
+
+    /** Distinct model names, alphabetically ordered via TreeSet view. */
+    public Set<String> getDistinctModelsAlphabetical() {
+        return new TreeSet<>(modelNames);
+    }
+
+    // ---------- Reporting ----------
+
     public String generateReport() {
         StringBuilder sb = new StringBuilder();
         sb.append("Fleet Report\n");
@@ -91,40 +134,36 @@ public class FleetManager {
         for (Vehicle v : fleet) {
             totalMileage += v.getCurrentMileage();
             sb.append(v.getClass().getSimpleName())
-                    .append(" ID: ").append(v.getId())
-                    .append(", Mileage: ").append(v.getCurrentMileage())
-                    .append(", Efficiency: ").append(v.calculateFuelEfficiency())
-                    .append("\n");
+              .append(" ID: ").append(v.getId())
+              .append(", Model: ").append(v.getModel())
+              .append(", MaxSpeed: ").append(v.getMaxSpeed())
+              .append(", Mileage: ").append(v.getCurrentMileage())
+              .append(", Efficiency: ").append(v.calculateFuelEfficiency())
+              .append("\n");
         }
         sb.append("Total mileage: ").append(totalMileage).append("\n");
         return sb.toString();
     }
 
-    //list of vehicles needing maintenance
     public List<Vehicle> getVehiclesNeedingMaintenance() {
         List<Vehicle> needing = new ArrayList<>();
         for (Vehicle v : fleet) {
-            if (v instanceof Maintainable) {
-                Maintainable m = (Maintainable) v;
-                if (m.needsMaintenance()) {
-                    needing.add(v);
-                }
-            }
+            if (v instanceof Maintainable m && m.needsMaintenance()) needing.add(v);
         }
         return needing;
     }
 
-    /////// Persistence //////
+    // ---------- Persistence (CSV) ----------
 
     public void saveToFile(String filename) {
         try (BufferedWriter bw = Files.newBufferedWriter(Paths.get(filename))) {
             for (Vehicle v : fleet) {
-                // Basic CSV: ClassName,id,model,maxSpeed,currentMileage
                 bw.write(v.getClass().getSimpleName() + ","
                         + v.getId() + ","
                         + v.getModel() + ","
                         + v.getMaxSpeed() + ","
-                        + v.getCurrentMileage());
+                        + v.getCurrentMileage() + ","
+                        + v.calculateFuelEfficiency());
                 bw.newLine();
             }
             System.out.println("Fleet saved to " + filename);
@@ -134,27 +173,40 @@ public class FleetManager {
     }
 
     public void loadFromFile(String filename) {
+        fleet.clear();
+        modelNames.clear();
+
         try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
             String line;
+            int lineNo = 0;
+
             while ((line = br.readLine()) != null) {
-                String[] parts = line.split(",");
-                if (parts.length < 5)
+                lineNo++;
+                if (line.isBlank()) continue;
+
+                String[] p = line.split(",");
+                if (p.length < 5) {
+                    System.err.println("Skipping malformed line " + lineNo + ": " + line);
                     continue;
-
-                // Parse fields
-                String type = parts[0];
-                String id = parts[1];
-                String model = parts[2];
-                double maxSpeed = Double.parseDouble(parts[3]);
-                double mileage = Double.parseDouble(parts[4]);
-
-                // Create vehicle via factory
-                Vehicle v = VehicleFactory.create(type, id, model, maxSpeed);
-                if (v != null) {
-                    v.setCurrentMileage(mileage); // - applies the value read from CSV
-                    fleet.add(v);
                 }
+                try {
+                    String type     = p[0].trim();
+                    String id       = p[1].trim();
+                    String model    = p[2].trim();
+                    double maxSpeed = Double.parseDouble(p[3].trim());
+                    double mileage  = Double.parseDouble(p[4].trim());
 
+                    Vehicle v = VehicleFactory.create(type, id, model, maxSpeed);
+                    if (v != null) {
+                        v.setCurrentMileage(mileage);
+                        fleet.add(v);
+                        modelNames.add(model);
+                    } else {
+                        System.err.println("Unknown vehicle type on line " + lineNo + ": " + type);
+                    }
+                } catch (NumberFormatException nfe) {
+                    System.err.println("Skipping line " + lineNo + " due to number format: " + nfe.getMessage());
+                }
             }
             System.out.println("Fleet loaded from " + filename);
         } catch (IOException e) {

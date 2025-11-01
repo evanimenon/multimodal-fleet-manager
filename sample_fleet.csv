@@ -1,0 +1,5 @@
+Car,C1,Sedan,120.0,100.0,15.0
+Truck,T1,Hauler,90.0,100.0,8.0
+Bus,B1,CityBus,80.0,100.0,10.0
+Airplane,A1,Boeing,850.0,100.0,2.0
+CargoShip,S1,Freighter,40.0,100.0,0.5

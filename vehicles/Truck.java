@@ -1,17 +1,16 @@
 package vehicles;
 
-import logistics.InvalidOperationException;
 import logistics.InsufficientFuelException;
+import logistics.InvalidOperationException;
 import logistics.OverloadException;
-import vehicles.interfaces.FuelConsumable;
 import vehicles.interfaces.CargoCarrier;
+import vehicles.interfaces.FuelConsumable;
 import vehicles.interfaces.Maintainable;
 
-public class Truck extends LandVehicle
-        implements FuelConsumable, CargoCarrier, Maintainable {
+public class Truck extends LandVehicle implements FuelConsumable, CargoCarrier, Maintainable {
 
     private double fuelLevel = 0.0;
-    private final double cargoCapacity = 5000.0; 
+    private final double cargoCapacity = 2000.0; 
     private double currentCargo = 0.0;
     private boolean maintenanceNeeded = false;
 
@@ -22,22 +21,31 @@ public class Truck extends LandVehicle
     @Override
     public void move(double distance) throws InvalidOperationException {
         double efficiency = calculateFuelEfficiency();
-        if (currentCargo > cargoCapacity * 0.5) {
-            efficiency *= 0.9; // reduce by 10% if heavy load
+
+        // Reduce fuel efficiency if heavily loaded (> 50% cargo)
+        if (currentCargo > cargoCapacity / 2) {
+            efficiency *= 0.9;
         }
+
         double requiredFuel = distance / efficiency;
         if (fuelLevel < requiredFuel) {
             throw new InvalidOperationException("Not enough fuel to haul cargo for " + distance + " km");
         }
+
         fuelLevel -= requiredFuel;
         updateMileage(distance);
+
         System.out.println("Hauling cargo for " + distance + " km...");
-        if (getCurrentMileage() > 10000) maintenanceNeeded = true;
+
+        // Maintenance check
+        if (getCurrentMileage() > 10000) {
+            maintenanceNeeded = true;
+        }
     }
 
     @Override
     public double calculateFuelEfficiency() {
-        return 8.0; 
+        return 8.0; // km per litre
     }
 
     // FuelConsumable
@@ -55,27 +63,30 @@ public class Truck extends LandVehicle
     @Override
     public double consumeFuel(double distance) throws InsufficientFuelException {
         double efficiency = calculateFuelEfficiency();
-        if (currentCargo > cargoCapacity * 0.5) {
+        if (currentCargo > cargoCapacity / 2) {
             efficiency *= 0.9;
         }
-        double needed = distance / efficiency;
-        if (fuelLevel < needed) throw new InsufficientFuelException("Insufficient fuel for trip");
-        fuelLevel -= needed;
-        return needed;
+
+        double required = distance / efficiency;
+        if (fuelLevel < required) throw new InsufficientFuelException("Insufficient fuel for trip");
+        fuelLevel -= required;
+        return required;
     }
 
     // CargoCarrier
     @Override
     public void loadCargo(double weight) throws OverloadException {
-        if (currentCargo + weight > cargoCapacity)
-            throw new OverloadException("Exceeds cargo capacity");
+        if (currentCargo + weight > cargoCapacity) {
+            throw new OverloadException("Exceeds cargo capacity of " + cargoCapacity + " kg");
+        }
         currentCargo += weight;
     }
 
     @Override
     public void unloadCargo(double weight) throws InvalidOperationException {
-        if (weight > currentCargo)
+        if (weight > currentCargo) {
             throw new InvalidOperationException("Not enough cargo to unload");
+        }
         currentCargo -= weight;
     }
 

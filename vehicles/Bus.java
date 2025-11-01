@@ -24,13 +24,23 @@ public class Bus extends LandVehicle
 
     @Override
     public void move(double distance) throws InvalidOperationException {
-        double requiredFuel = distance / calculateFuelEfficiency();
+        double efficiency = calculateFuelEfficiency();
+
+        // Reduce efficiency if bus is heavily loaded (more than 50% passengers or cargo)
+        if (currentPassengers > passengerCapacity / 2 || currentCargo > cargoCapacity / 2) {
+            efficiency *= 0.9; // 10% extra fuel use under heavy load
+        }
+
+        double requiredFuel = distance / efficiency;
         if (fuelLevel < requiredFuel) {
             throw new InvalidOperationException("Not enough fuel to transport passengers and cargo for " + distance + " km");
         }
+
         fuelLevel -= requiredFuel;
         updateMileage(distance);
+
         System.out.println("Transporting passengers and cargo for " + distance + " km...");
+
         if (getCurrentMileage() > 10000) maintenanceNeeded = true;
     }
 

@@ -12,9 +12,9 @@ public class Airplane extends AirVehicle
         implements FuelConsumable, PassengerCarrier, CargoCarrier, Maintainable {
 
     private double fuelLevel = 0.0;
-    private final int passengerCapacity = 200;
+    private final int passengerCapacity = 180;   
     private int currentPassengers = 0;
-    private final double cargoCapacity = 10000.0; 
+    private final double cargoCapacity = 5000.0;   
     private double currentCargo = 0.0;
     private boolean maintenanceNeeded = false;
 
@@ -24,21 +24,31 @@ public class Airplane extends AirVehicle
 
     @Override
     public void move(double distance) throws InvalidOperationException {
-        double requiredFuel = distance / calculateFuelEfficiency();
+        double efficiency = calculateFuelEfficiency();
+
+        // Reduce fuel efficiency if heavily loaded (similar to Truck & Bus rule)
+        if (currentPassengers > passengerCapacity / 2 || currentCargo > cargoCapacity / 2) {
+            efficiency *= 0.9; // heavier load = more fuel use
+        }
+
+        double requiredFuel = distance / efficiency;
         if (fuelLevel < requiredFuel) {
             throw new InvalidOperationException(
                 "Not enough fuel to fly " + distance + " km at altitude " + getMaxAltitude()
             );
         }
+
         fuelLevel -= requiredFuel;
         updateMileage(distance);
+
         System.out.println("Flying at " + getMaxAltitude() + " meters for " + distance + " km...");
+
         if (getCurrentMileage() > 10000) maintenanceNeeded = true;
     }
 
     @Override
     public double calculateFuelEfficiency() {
-        return 5.0; // km per litre
+        return 2.0; // aviation ~2 km/l 
     }
 
     // FuelConsumable
@@ -65,7 +75,7 @@ public class Airplane extends AirVehicle
     @Override
     public void boardPassengers(int count) throws OverloadException {
         if (currentPassengers + count > passengerCapacity)
-            throw new OverloadException("Exceeds passenger capacity");
+            throw new OverloadException("Exceeds passenger capacity of " + passengerCapacity);
         currentPassengers += count;
     }
 
@@ -77,20 +87,16 @@ public class Airplane extends AirVehicle
     }
 
     @Override
-    public int getPassengerCapacity() {
-        return passengerCapacity;
-    }
+    public int getPassengerCapacity() { return passengerCapacity; }
 
     @Override
-    public int getCurrentPassengers() {
-        return currentPassengers;
-    }
+    public int getCurrentPassengers() { return currentPassengers; }
 
     // CargoCarrier
     @Override
     public void loadCargo(double weight) throws OverloadException {
         if (currentCargo + weight > cargoCapacity)
-            throw new OverloadException("Exceeds cargo capacity");
+            throw new OverloadException("Exceeds cargo capacity of " + cargoCapacity + " kg");
         currentCargo += weight;
     }
 
@@ -102,20 +108,14 @@ public class Airplane extends AirVehicle
     }
 
     @Override
-    public double getCargoCapacity() {
-        return cargoCapacity;
-    }
+    public double getCargoCapacity() { return cargoCapacity; }
 
     @Override
-    public double getCurrentCargo() {
-        return currentCargo;
-    }
+    public double getCurrentCargo() { return currentCargo; }
 
     // Maintainable
     @Override
-    public void scheduleMaintenance() {
-        maintenanceNeeded = true;
-    }
+    public void scheduleMaintenance() { maintenanceNeeded = true; }
 
     @Override
     public boolean needsMaintenance() {
