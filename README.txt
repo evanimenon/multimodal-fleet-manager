@@ -1,5 +1,5 @@
 # Transportation Fleet Management System
-AP_M25 – Advanced Programming (Assignment A1 + A2)
+AP_M25 – Advanced Programming (Assignment A1 + A2 + A3)
 
 Author: Evani Menon  
 Roll Number: 2024210
@@ -11,7 +11,7 @@ This project implements a multi-modal transportation fleet management
 system using Object-Oriented Programming principles in Java. It supports
 managing land, air, and water vehicles, tracking mileage, fuel consumption,
 passenger and cargo loads, maintenance requirements, persistence to file,
-sorting and reporting through a CLI menu.
+sorting and reporting through a CLI menu and Multi-threaded Highway Simulator (one thread per vehicle)
 
 ------------------------------------------------------------
 How to Compile and Run
@@ -19,8 +19,11 @@ How to Compile and Run
 1. Compile:
    javac -d out $(find . -name "*.java")
 
-2. Run:
+2. Run A2:
    java -cp out app.Main
+
+   Run A3:
+   java -cp "out:lib/*" ui.HighwaySimulatorLauncher
 
 ------------------------------------------------------------
 Vehicle Types

@@ -4,13 +4,15 @@ import vehicles.Vehicle;
 import vehicles.interfaces.FuelConsumable;
 import vehicles.interfaces.Maintainable;
 
+import indexing.VehicleHashTable;
+import metrics.FleetMetrics;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-
 
 /**
  * Collection-based Fleet Manager:
@@ -19,11 +21,27 @@ import java.util.*;
  * - Ordering/view: TreeSet via getDistinctModelsAlphabetical()
  * - Sorting: comparators for speed/model/efficiency
  * - Persistence: CSV save/load (for A2)
+ * - A3: Hash-table index + global metrics
  */
 public class FleetManager {
 
     private final List<Vehicle> fleet = new ArrayList<>();
     private final Set<String> modelNames = new HashSet<>();
+
+    // A3 additions
+    private final VehicleHashTable index = new VehicleHashTable();
+    private final FleetMetrics metrics = new FleetMetrics();
+
+    // --- A3 helpers for GUI / metrics ---
+
+    public FleetMetrics getMetrics() {
+        return metrics;
+    }
+
+    /** Read-only view of all vehicles, useful for GUI listing. */
+    public List<Vehicle> getAllVehicles() {
+        return Collections.unmodifiableList(fleet);
+    }
 
     // ---------- CRUD / Lookup ----------
 
@@ -35,15 +53,34 @@ public class FleetManager {
         }
         fleet.add(v);
         modelNames.add(v.getModel());
+
+        // A3: keep hash index + metrics in sync
+        index.put(v.getId(), v);
+        metrics.incrementVehicleCount();
     }
 
     public void removeVehicle(String id) throws InvalidOperationException {
-        boolean removed = fleet.removeIf(v -> v.getId().equals(id));
-        if (!removed) throw new InvalidOperationException("Vehicle with ID " + id + " not found");
+        boolean removed = fleet.removeIf(v -> {
+            if (v.getId().equals(id)) {
+                index.remove(id);          // A3: remove from hash index too
+                return true;
+            }
+            return false;
+        });
+        if (!removed) {
+            throw new InvalidOperationException("Vehicle with ID " + id + " not found");
+        }
     }
 
     public Vehicle searchById(String id) {
-        for (Vehicle v : fleet) if (v.getId().equals(id)) return v;
+        // Prefer fast hash-table lookup
+        Vehicle v = index.get(id);
+        if (v != null) return v;
+
+        // Fallback linear scan (defensive)
+        for (Vehicle veh : fleet) {
+            if (veh.getId().equals(id)) return veh;
+        }
         return null;
     }
 
@@ -59,6 +96,8 @@ public class FleetManager {
         for (Vehicle v : fleet) {
             try {
                 v.move(distance);
+                // A3: count journeys globally
+                metrics.incrementJourneyCount();
             } catch (Exception e) {
                 System.err.println("Journey failed for " + v.getId() + ": " + e.getMessage());
             }
@@ -145,10 +184,13 @@ public class FleetManager {
         return sb.toString();
     }
 
+    /** A2 method your Main is calling – kept exactly the same. */
     public List<Vehicle> getVehiclesNeedingMaintenance() {
         List<Vehicle> needing = new ArrayList<>();
         for (Vehicle v : fleet) {
-            if (v instanceof Maintainable m && m.needsMaintenance()) needing.add(v);
+            if (v instanceof Maintainable m && m.needsMaintenance()) {
+                needing.add(v);
+            }
         }
         return needing;
     }
@@ -175,6 +217,8 @@ public class FleetManager {
     public void loadFromFile(String filename) {
         fleet.clear();
         modelNames.clear();
+        index.clear();
+        metrics.reset();
 
         try (BufferedReader br = Files.newBufferedReader(Paths.get(filename))) {
             String line;
@@ -201,6 +245,10 @@ public class FleetManager {
                         v.setCurrentMileage(mileage);
                         fleet.add(v);
                         modelNames.add(model);
+
+                        // A3: keep index + metrics current
+                        index.put(id, v);
+                        metrics.incrementVehicleCount();
                     } else {
                         System.err.println("Unknown vehicle type on line " + lineNo + ": " + type);
                     }
